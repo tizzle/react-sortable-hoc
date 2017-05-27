@@ -249,8 +249,6 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
 
         this.node = node;
         this.margin = margin;
-        this.width = dimensions.width;
-        this.height = dimensions.height;
         this.marginOffset = {
           x: this.margin.left + this.margin.right,
           y: Math.max(this.margin.top, this.margin.bottom),
@@ -271,61 +269,10 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
           left: this.scrollContainer.scrollLeft,
         };
 
-        const fields = node.querySelectorAll('input, textarea, select');
-        const clonedNode = node.cloneNode(true);
-        const clonedFields = [
-          ...clonedNode.querySelectorAll('input, textarea, select'),
-        ]; // Convert NodeList to Array
-
-        clonedFields.forEach((field, index) => {
-          return (field.value = fields[index] && fields[index].value);
-        });
-
-        this.helper = this.document.body.appendChild(clonedNode);
-
-        this.helper.style.position = 'fixed';
-        this.helper.style.top = `${this.boundingClientRect.top - margin.top}px`;
-        this.helper.style.left = `${this.boundingClientRect.left - margin.left}px`;
-        this.helper.style.width = `${this.width}px`;
-        this.helper.style.height = `${this.height}px`;
-        this.helper.style.boxSizing = 'border-box';
-        this.helper.style.pointerEvents = 'none';
-
         if (hideSortableGhost) {
           this.sortableGhost = node;
           node.style.visibility = 'hidden';
           node.style.opacity = 0;
-        }
-
-        this.minTranslate = {};
-        this.maxTranslate = {};
-        if (this.axis.x) {
-          this.minTranslate.x = (useWindowAsScrollContainer
-            ? 0
-            : containerBoundingRect.left) -
-            this.boundingClientRect.left -
-            this.width / 2;
-          this.maxTranslate.x = (useWindowAsScrollContainer
-            ? this.contentWindow.innerWidth
-            : containerBoundingRect.left + containerBoundingRect.width) -
-            this.boundingClientRect.left -
-            this.width / 2;
-        }
-        if (this.axis.y) {
-          this.minTranslate.y = (useWindowAsScrollContainer
-            ? 0
-            : containerBoundingRect.top) -
-            this.boundingClientRect.top -
-            this.height / 2;
-          this.maxTranslate.y = (useWindowAsScrollContainer
-            ? this.contentWindow.innerHeight
-            : containerBoundingRect.top + containerBoundingRect.height) -
-            this.boundingClientRect.top -
-            this.height / 2;
-        }
-
-        if (helperClass) {
-          this.helper.classList.add(...helperClass.split(' '));
         }
 
         this.listenerNode = e.touches ? node : this.contentWindow;
@@ -343,11 +290,69 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
           ));
 
         this.setState({
-          sorting: true,
-          sortingIndex: index,
+            sorting: true,
+            sortingIndex: index,
+        }, () => {
+            const fields = node.querySelectorAll('input, textarea, select');
+            const clonedNode = node.cloneNode(true);
+            const clonedFields = [
+                ...clonedNode.querySelectorAll('input, textarea, select'),
+            ]; // Convert NodeList to Array
+
+            clonedFields.forEach((field, index) => {
+                return (field.value = fields[index] && fields[index].value);
+            });
+
+            this.helper = this.document.body.appendChild(clonedNode);
+
+            if (helperClass) {
+                this.helper.classList.add(...helperClass.split(' '));
+            }
+
+            let updatedDimensions = getHelperDimensions({index, node, collection});
+
+            this.width = updatedDimensions.width;
+            this.height = updatedDimensions.height;
+
+            this.minTranslate = {};
+            this.maxTranslate = {};
+            if (this.axis.x) {
+              this.minTranslate.x = (useWindowAsScrollContainer
+                ? 0
+                : containerBoundingRect.left) -
+                this.boundingClientRect.left -
+                this.width / 2;
+              this.maxTranslate.x = (useWindowAsScrollContainer
+                ? this.contentWindow.innerWidth
+                : containerBoundingRect.left + containerBoundingRect.width) -
+                this.boundingClientRect.left -
+                this.width / 2;
+            }
+            if (this.axis.y) {
+              this.minTranslate.y = (useWindowAsScrollContainer
+                ? 0
+                : containerBoundingRect.top) -
+                this.boundingClientRect.top -
+                this.height / 2;
+              this.maxTranslate.y = (useWindowAsScrollContainer
+                ? this.contentWindow.innerHeight
+                : containerBoundingRect.top + containerBoundingRect.height) -
+                this.boundingClientRect.top -
+                this.height / 2;
+            }
+
+            this.helper.style.position = 'fixed';
+            this.helper.style.top = `${this.boundingClientRect.top - margin.top}px`;
+            this.helper.style.left = `${this.boundingClientRect.left - margin.left}px`;
+            this.helper.style.width = `${this.width}px`;
+            this.helper.style.height = `${this.height}px`;
+            this.helper.style.boxSizing = 'border-box';
+            this.helper.style.pointerEvents = 'none';
+
+            if (onSortStart) onSortStart({node, index, collection}, e);
+
         });
 
-        if (onSortStart) onSortStart({node, index, collection}, e);
       }
     };
 
